@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wanderify - Intelligent AI Travel Itinerary Planner
 
-## Getting Started
+**Wanderify** is a premium, state-of-the-art AI-powered travel planner that generates complete, personalized daily itineraries in seconds. Stop spending hours researching destinations, budgets, and routing. Wanderify automates the entire planning process, offering a visual, interactive dashboard tailored to your unique travel preferences.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🌟 Key Features
+
+### 🧠 1. AI-Powered Travel Engine
+- Uses the **Anthropic Claude API** to generate detailed, customized travel itineraries.
+- Suggests structured daily activities divided into Morning, Afternoon, and Evening slots.
+- Includes local travel tips, dining recommendations, and curated "Hidden Gems" for each destination.
+
+### 💳 2. Secure Stripe Integration (Stripe Hosted Checkout)
+- Charged at a flat rate ($1.99 USD) per itinerary generation/download using **Stripe Hosted Checkout**.
+- Safely stores all trip parameters inside Stripe session metadata.
+- Employs **Transaction Idempotency** (using the Stripe Session ID as the Firestore document ID) to guarantee exactly one trip is created per purchase, preventing duplicates between Webhooks and Success redirects.
+
+### 🌤️ 3. Live Weather Forecasts (WeatherAPI.com)
+- Securely fetches live weather conditions through Next.js Server Actions to protect API keys.
+- Shows a live 10-day weather forecast if the travel dates are upcoming.
+- Automatically falls back to historical climate data (from the same date last year) if travel dates are in the far future or past.
+- Clear badge indicators display whether the weather is **"Real Weather"**, **"Typical Weather"** (historical), or **"Simulated"**.
+
+### 🗺️ 4. Interactive Route Maps (Leaflet & OpenStreetMap)
+- Embeds a fully interactive map using Leaflet.js with clean **CartoDB Voyager** map layers.
+- Places numbered pins (**1**, **2**, **3**) matching the chronological order of activities.
+- Draws dashed route lines (polylines) connecting the planned stops.
+- Popups display detailed description and suggested time when a pin is clicked.
+
+### ✈️ 5. Flight & Hotel Recommendations
+- **Flight Recommendations**: Displays suggested airlines, flight duration, and estimated costs.
+- **Hotel Recommendations**: Suggests top-rated accommodations matching your budget profile, including price-per-night, ratings, and brief descriptions.
+
+### 📍 6. Google Maps Navigation Links
+- Direct deep links are attached to all activities, hotels, restaurants, and hidden gems.
+- Clicking the navigation icon opens Google Maps directly with pre-filled locations for easy routing.
+
+### 📄 7. PDF Export (Tailwind CSS v4 Compatible)
+- Allows users to download their itineraries as clean PDFs for offline use.
+- Built using dynamic imports of `jsPDF` and **`html2canvas-pro`** (which supports Tailwind CSS v4's oklab/oklch color specifications without rendering errors).
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js (App Router, Server Actions)
+- **Styling & Animations:** Tailwind CSS v4, Framer Motion
+- **Database:** Firebase Firestore (Admin SDK)
+- **Authentication:** Firebase Client Authentication (including email verification and Google Provider login)
+- **Payments:** Stripe SDK / Stripe Hosted Checkout
+- **APIs:** 
+  - Anthropic SDK (`claude-haiku-4-5`)
+  - WeatherAPI.com
+  - Leaflet.js
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the root directory and add the following keys:
+
+```env
+# Firebase Configuration
+FIREBASE_PROJECT_ID="your-project-id"
+FIREBASE_CLIENT_EMAIL="your-firebase-client-email"
+FIREBASE_PRIVATE_KEY="your-firebase-private-key"
+
+# Anthropic Claude API Key
+ANTHROPIC_API_KEY="your-anthropic-key"
+
+# WeatherAPI.com API Key
+WEATHER_API_KEY="your-weatherapi-key"
+
+# Stripe API Keys
+STRIPE_SECRET_KEY="your-stripe-secret-key"
+STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
+
+# Email Settings (Nodemailer SMTP)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-gmail-app-password"
+EMAIL_FROM="Wanderify <your-email@gmail.com>"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Installation & Local Development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-## Learn More
+### 2. Start the Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 3. Build for Production
+```bash
+npm run build
+npm run start
+```
