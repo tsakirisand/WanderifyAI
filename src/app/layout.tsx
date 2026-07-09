@@ -15,8 +15,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wanderify",
-  description: "AI-powered travel itineraries planner",
+  title: "Wanderify - Smart AI Travel Planner",
+  description: "Plan your next adventure in seconds with our AI-powered travel planner. Generate customized itineraries, budget estimates, and discover hidden gems.",
+  metadataBase: new URL("https://wanderify.vercel.app"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Wanderify - Smart AI Travel Planner",
+    description: "Customized travel itineraries generated in seconds using advanced AI.",
+    url: "https://wanderify.vercel.app",
+    siteName: "Wanderify",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "Wanderify Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Wanderify - Smart AI Travel Planner",
+    description: "AI-powered travel itineraries planner",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
