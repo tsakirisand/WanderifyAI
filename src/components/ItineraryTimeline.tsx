@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getDestinationPhotos, getDestinationPhotosBatch } from "@/app/actions/getDestinationPhoto";
+import { geocodePlacesAction } from "@/app/actions/geocodePlaces";
 
 export interface TripActivity {
   time?: string;
@@ -58,6 +60,8 @@ export interface AiTripResult {
 interface ItineraryTimelineProps {
   data: AiTripResult;
   startDate?: string;
+  initialCoordinates?: Record<string, { lat: number; lon: number }>;
+  tripId?: string;
 }
 
 const containerVariants: Variants = {
@@ -128,9 +132,125 @@ function getIconForConditionText(text: string) {
   return Sun;
 }
 
-export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
+export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId }: ItineraryTimelineProps) {
   const [activeDay, setActiveDay] = useState<number>(1);
   const [hoveredPin, setHoveredPin] = useState<{ name: string; desc: string; time?: string; type: string } | null>(null);
+
+  const [photoMapping, setPhotoMapping] = useState<Record<string, string>>({});
+  const [isPreloadingPhotos, setIsPreloadingPhotos] = useState(true);
+
+  const itemsToFetch = useMemo(() => {
+    const list: { key: string; query: string; destination: string }[] = [];
+    
+    // 1. Destination cover photo
+    list.push({ key: `dest-${data.destination}`, query: data.destination, destination: "" });
+    
+    // 2. Hotels
+    if (data.hotel_recommendations) {
+      data.hotel_recommendations.forEach(h => {
+        list.push({ key: `hotel-${h.name}`, query: h.name, destination: data.destination });
+      });
+    }
+    
+    // 3. Food
+    if (data.food_recommendations) {
+      data.food_recommendations.forEach(f => {
+        list.push({ key: `food-${f.name}`, query: f.name, destination: data.destination });
+      });
+    }
+    
+    // 4. Days activities
+    data.days.forEach(day => {
+      day.morning.forEach(act => {
+        list.push({ key: `act-${act.place}`, query: act.place, destination: data.destination });
+      });
+      day.afternoon.forEach(act => {
+        list.push({ key: `act-${act.place}`, query: act.place, destination: data.destination });
+      });
+      day.evening.forEach(act => {
+        list.push({ key: `act-${act.place}`, query: act.place, destination: data.destination });
+      });
+    });
+    
+    // Deduplicate by key
+    const seenKeys = new Set<string>();
+    return list.filter(item => {
+      if (seenKeys.has(item.key)) return false;
+      seenKeys.add(item.key);
+      return true;
+    });
+  }, [data]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAllPhotos = async () => {
+      setIsPreloadingPhotos(true);
+      try {
+        const mapping = await getDestinationPhotosBatch(itemsToFetch);
+        if (active) {
+          setPhotoMapping(mapping);
+        }
+      } catch (err) {
+        console.error("Batch photo fetch failed:", err);
+      } finally {
+        if (active) {
+          setIsPreloadingPhotos(false);
+        }
+      }
+    };
+    fetchAllPhotos();
+    return () => {
+      active = false;
+    };
+  }, [itemsToFetch]);
+
+  // Batch geocode all itinerary places
+  const [coordinates, setCoordinates] = useState<Record<string, { lat: number; lon: number }>>(initialCoordinates || {});
+  const [isGeocoding, setIsGeocoding] = useState(true);
+
+  const allPlaces = useMemo(() => {
+    const list: string[] = [];
+    data.days.forEach(day => {
+      day.morning.forEach(act => list.push(act.place));
+      day.afternoon.forEach(act => list.push(act.place));
+      day.evening.forEach(act => list.push(act.place));
+    });
+    return Array.from(new Set(list));
+  }, [data]);
+
+  useEffect(() => {
+    // If coordinates are already loaded, do not fetch from API
+    if (coordinates && Object.keys(coordinates).length > 0) {
+      setIsGeocoding(false);
+      return;
+    }
+
+    let active = true;
+    const fetchCoordinates = async () => {
+      setIsGeocoding(true);
+      try {
+        const coords = await geocodePlacesAction(data.destination, allPlaces);
+        if (active) {
+          setCoordinates(coords);
+          // Save geocoded coordinates back to Firestore to avoid 429 quota exhaustion on future page loads
+          if (tripId && Object.keys(coords).length > 0) {
+            const { updateTripCoordinates } = await import("@/app/actions/updateTrip");
+            await updateTripCoordinates(tripId, coords);
+          }
+        }
+      } catch (err) {
+        console.error("Geocoding failed:", err);
+      } finally {
+        if (active) {
+          setIsGeocoding(false);
+        }
+      }
+    };
+    fetchCoordinates();
+    return () => {
+      active = false;
+    };
+  }, [allPlaces, data.destination, tripId, coordinates]);
 
   // Real weather API state
   const [realWeather, setRealWeather] = useState<any>(null);
@@ -284,10 +404,9 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
     });
 
     mapPins.forEach((pin, i) => {
-      const latOffset = (pin.y - 50) * 0.0008;
-      const lonOffset = (pin.x - 50) * 0.0008;
-      const pinLat = activeWeather.lat + latOffset;
-      const pinLon = activeWeather.lon + lonOffset;
+      const coords = coordinates[pin.name];
+      const pinLat = coords ? coords.lat : activeWeather.lat + (pin.y - 50) * 0.0008;
+      const pinLon = coords ? coords.lon : activeWeather.lon + (pin.x - 50) * 0.0008;
       latlngs.push([pinLat, pinLon]);
 
       const marker = L.marker([pinLat, pinLon], { icon: createCustomIcon(i + 1) }).addTo(map);
@@ -309,6 +428,8 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
       }).addTo(map);
 
       map.fitBounds(L.polyline(latlngs).getBounds(), { padding: [40, 40] });
+    } else if (latlngs.length === 1) {
+      map.setView(latlngs[0], 13);
     }
 
     return () => {
@@ -317,30 +438,44 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
         mapRef.current = null;
       }
     };
-  }, [leafletLoaded, activeWeather?.lat, activeWeather?.lon, mapPins]);
+  }, [leafletLoaded, activeWeather?.lat, activeWeather?.lon, mapPins, coordinates]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto w-full pb-20">
-      {/* Header Info */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          {data.destination} Itinerary
-        </h1>
-        <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
-          {data.summary}
-        </p>
-        <div className="flex flex-wrap gap-2.5 pt-2">
-          <Badge variant="secondary" className="px-3.5 py-1 text-sm rounded-full bg-primary/5 text-primary border border-primary/10">
-            💰 {data.budget_estimate}
-          </Badge>
-          <Badge variant="secondary" className="px-3.5 py-1 text-sm rounded-full bg-primary/5 text-primary border border-primary/10">
-            🗓 {data.days.length} Days
-          </Badge>
-          {startDate && (
-            <Badge variant="secondary" className="px-3.5 py-1 text-sm rounded-full bg-primary/5 text-primary border border-primary/10">
-              📅 Start: {new Date(startDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-            </Badge>
-          )}
+      {/* Dynamic Hero Banner */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className="relative h-[280px] md:h-[360px] w-full rounded-3xl overflow-hidden shadow-xl"
+      >
+        <PlacePhoto 
+          photoUrl={photoMapping[`dest-${data.destination}`]} 
+          className="absolute inset-0 w-full h-full object-cover" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+        
+        <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 text-white">
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
+              {data.destination}
+            </h1>
+            <p className="text-xs md:text-sm text-white/90 leading-relaxed max-w-2xl drop-shadow-sm font-medium">
+              {data.summary}
+            </p>
+            <div className="flex flex-wrap gap-2.5 pt-1">
+              <Badge className="px-3 py-1 text-xs font-bold rounded-full bg-white/15 hover:bg-white/20 text-white border border-white/25 backdrop-blur-md shadow-sm">
+                💰 {data.budget_estimate}
+              </Badge>
+              <Badge className="px-3 py-1 text-xs font-bold rounded-full bg-white/15 hover:bg-white/20 text-white border border-white/25 backdrop-blur-md shadow-sm">
+                🗓 {data.days.length} Days
+              </Badge>
+              {startDate && (
+                <Badge className="px-3 py-1 text-xs font-bold rounded-full bg-white/15 hover:bg-white/20 text-white border border-white/25 backdrop-blur-md shadow-sm">
+                  📅 Start: {new Date(startDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -405,9 +540,9 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
                     </div>
                     
                     <div className="space-y-6">
-                      <TimeSection title="Morning" icon={<Sunrise className="w-5 h-5 text-orange-400" />} activities={dayData.morning} destination={data.destination} />
-                      <TimeSection title="Afternoon" icon={<Sun className="w-5 h-5 text-yellow-500" />} activities={dayData.afternoon} destination={data.destination} />
-                      <TimeSection title="Evening" icon={<Moon className="w-5 h-5 text-indigo-400" />} activities={dayData.evening} destination={data.destination} />
+                      <TimeSection title="Morning" icon={<Sunrise className="w-5 h-5 text-orange-400" />} activities={dayData.morning} destination={data.destination} photoMapping={photoMapping} />
+                      <TimeSection title="Afternoon" icon={<Sun className="w-5 h-5 text-yellow-500" />} activities={dayData.afternoon} destination={data.destination} photoMapping={photoMapping} />
+                      <TimeSection title="Evening" icon={<Moon className="w-5 h-5 text-indigo-400" />} activities={dayData.evening} destination={data.destination} photoMapping={photoMapping} />
                       
                       {dayData.tips && dayData.tips.length > 0 && (
                         <div className="mt-4 pt-4 border-t border-border/30">
@@ -495,7 +630,7 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
           </Card>
 
           {/* Interactive Route Map */}
-          <Card className="bg-card border-border/50 rounded-2xl overflow-hidden shadow-md py-0">
+          <Card className="bg-card border-border/50 rounded-2xl overflow-hidden shadow-md py-0 gap-0">
             <CardHeader className="pt-5 pb-3 border-b border-border/10 bg-primary/5">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -579,28 +714,34 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
               <CardContent className="pt-6 pb-6">
                 <div className="space-y-4">
                   {data.hotel_recommendations.map((hotel, idx) => (
-                    <div key={idx} className="flex flex-col gap-1.5 border-b border-border/20 pb-3.5 last:border-0 last:pb-0">
-                      <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-foreground text-sm">{hotel.name}</span>
-                          <a 
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name + ", " + data.destination)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
-                            title="Open in Google Maps"
-                          >
-                            <Navigation className="w-3 h-3 rotate-45" />
-                          </a>
+                    <div key={idx} className="flex gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start">
+                      <PlacePhoto 
+                        photoUrl={photoMapping[`hotel-${hotel.name}`]} 
+                        className="w-20 h-20 rounded-xl object-cover shadow-sm shrink-0" 
+                      />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-foreground text-sm truncate">{hotel.name}</span>
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name + ", " + data.destination)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
+                              title="Open in Google Maps"
+                            >
+                              <Navigation className="w-3.5 h-3.5 rotate-45" />
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] text-muted-foreground font-semibold">{hotel.price_range}</span>
+                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5">
+                              ★ {hotel.rating.replace("★", "").trim()}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-muted-foreground font-semibold">{hotel.price_range}</span>
-                          <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5">
-                            ★ {hotel.rating.replace("★", "").trim()}
-                          </Badge>
-                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{hotel.description}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{hotel.description}</p>
                     </div>
                   ))}
                 </div>
@@ -650,25 +791,31 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
           <CardContent className="pt-6 pb-6">
             <ul className="space-y-4">
               {data.food_recommendations.map((food, idx) => (
-                <li key={idx} className="text-sm flex flex-col gap-1 border-b border-border/20 pb-3 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-foreground">{food.name}</span>
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(food.name + ", " + data.destination)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
-                        title="Open in Google Maps"
-                      >
-                        <Navigation className="w-3 h-3 rotate-45" />
-                      </a>
+                <li key={idx} className="flex gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start">
+                  <PlacePhoto 
+                    photoUrl={photoMapping[`food-${food.name}`]} 
+                    className="w-20 h-20 rounded-xl object-cover shadow-sm shrink-0" 
+                  />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-foreground text-sm truncate">{food.name}</span>
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(food.name + ", " + data.destination)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
+                          title="Open in Google Maps"
+                        >
+                          <Navigation className="w-3.5 h-3.5 rotate-45" />
+                        </a>
+                      </div>
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5 shrink-0">
+                        ★ {food.rating.replace("★", "").trim()}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5 shrink-0">
-                      ★ {food.rating.replace("★", "").trim()}
-                    </Badge>
+                    <span className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{food.description}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground leading-relaxed">{food.description}</span>
                 </li>
               ))}
             </ul>
@@ -679,7 +826,7 @@ export function ItineraryTimeline({ data, startDate }: ItineraryTimelineProps) {
   );
 }
 
-function TimeSection({ title, icon, activities, destination }: { title: string, icon: React.ReactNode, activities: TripActivity[], destination: string }) {
+function TimeSection({ title, icon, activities, destination, photoMapping }: { title: string, icon: React.ReactNode, activities: TripActivity[], destination: string, photoMapping: Record<string, string> }) {
   if (!activities || activities.length === 0) return null;
   return (
     <div className="space-y-3.5">
@@ -688,12 +835,16 @@ function TimeSection({ title, icon, activities, destination }: { title: string, 
       </h4>
       <div className="space-y-4">
         {activities.map((act, i) => (
-          <div key={i} className="flex gap-3.5 relative pl-2 group">
+          <div key={i} className="flex gap-4 relative pl-2 group">
             <div className="absolute left-[-16px] top-1.5 w-1.5 h-1.5 rounded-full bg-border/80 group-hover:bg-primary transition-colors" />
-            <div className="flex-1 space-y-1">
+            <PlacePhoto 
+              photoUrl={photoMapping[`act-${act.place}`]} 
+              className="w-16 h-16 rounded-xl object-cover shadow-sm hover:scale-105 transition-transform duration-500 shrink-0" 
+            />
+            <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex items-center gap-1.5 group/link">
-                  <span className="font-semibold text-foreground text-sm leading-none">{act.place}</span>
+                  <span className="font-semibold text-foreground text-sm leading-tight truncate max-w-[150px] md:max-w-xs">{act.place}</span>
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.place + ", " + destination)}`}
                     target="_blank"
@@ -706,11 +857,25 @@ function TimeSection({ title, icon, activities, destination }: { title: string, 
                 </div>
                 {act.time && <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{act.time}</span>}
               </div>
-              <p className="text-xs text-muted-foreground/80 leading-relaxed">{act.description}</p>
+              <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">{act.description}</p>
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function PlacePhoto({ photoUrl, className = "w-16 h-16 rounded-xl" }: { photoUrl?: string; className?: string }) {
+  if (!photoUrl) {
+    return <div className={`${className} bg-muted/20 animate-pulse`} />;
+  }
+
+  return (
+    <img
+      src={photoUrl}
+      alt="Itinerary spot photo"
+      className={className}
+    />
   );
 }

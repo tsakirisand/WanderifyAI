@@ -19,3 +19,15 @@ export async function updateTripAction(id: string, userId: string, aiResult: any
 
   revalidatePath(`/trip/${id}`);
 }
+
+export async function updateTripCoordinates(id: string, coordinates: any) {
+  try {
+    const tripDocRef = doc(db, "trips", id);
+    await updateDoc(tripDocRef, {
+      coordinates,
+    });
+    revalidatePath(`/trip/${id}`);
+  } catch (error) {
+    console.error("Failed to update trip coordinates:", error);
+  }
+}

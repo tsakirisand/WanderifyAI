@@ -92,6 +92,24 @@ export async function generateTripAction(formData: FormData, userId: string) {
 
   const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes);
 
+  // Extract unique places to geocode once at trip creation time
+  const places: string[] = [];
+  if (aiResult && aiResult.days) {
+    aiResult.days.forEach((day: any) => {
+      if (day.morning) day.morning.forEach((a: any) => places.push(a.place));
+      if (day.afternoon) day.afternoon.forEach((a: any) => places.push(a.place));
+      if (day.evening) day.evening.forEach((a: any) => places.push(a.place));
+    });
+  }
+
+  let coordinates = {};
+  try {
+    const { geocodePlacesAction } = await import("./geocodePlaces");
+    coordinates = await geocodePlacesAction(destination, Array.from(new Set(places)));
+  } catch (error) {
+    console.error("Geocoding failed during generation:", error);
+  }
+
   const newTripRef = doc(collection(db, "trips"));
   await setDoc(newTripRef, {
     userId,
@@ -101,6 +119,7 @@ export async function generateTripAction(formData: FormData, userId: string) {
     travelStyle,
     interests,
     aiResult,
+    coordinates,
     startDate: startDate || null,
     createdAt: new Date().toISOString(),
   });

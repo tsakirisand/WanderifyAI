@@ -126,7 +126,7 @@ export default function TripPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between mb-12 gap-4">
+      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between mb-12 gap-4">
         <Link href="/dashboard">
           <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
             &larr; Back to Dashboard
@@ -165,7 +165,12 @@ export default function TripPage() {
       </div>
       
       <div id="itinerary-timeline">
-        <ItineraryTimeline data={aiResult} startDate={trip.startDate} />
+        <ItineraryTimeline 
+          data={aiResult} 
+          startDate={trip.startDate} 
+          initialCoordinates={trip.coordinates} 
+          tripId={trip.id} 
+        />
       </div>
     </div>
   );

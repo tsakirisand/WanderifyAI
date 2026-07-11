@@ -9,6 +9,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { Badge } from "@/components/ui/badge";
+import { getDestinationPhotos } from "@/app/actions/getDestinationPhoto";
 import {
   Dialog,
   DialogContent,
@@ -104,39 +106,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {trips.map((trip) => (
-            <Card key={trip.id} className="flex flex-col hover:shadow-md transition-shadow group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-primary/10" />
-              <CardHeader>
-                <div className="flex justify-between items-start gap-4">
-                  <CardTitle className="text-xl line-clamp-1">{trip.destination}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setTripToDelete(trip)}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary/70" /> 
-                    <span className="font-medium text-foreground">{trip.days} Days</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Map className="w-4 h-4 text-primary/70" /> 
-                    <span className="capitalize">{trip.travelStyle} • {trip.budget}</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 mt-auto bg-muted/20">
-                <Link href={`/trip/${trip.id}`} className="w-full">
-                  <Button variant="outline" className="w-full hover:bg-primary hover:text-primary-foreground transition-colors">View Itinerary</Button>
-                </Link>
-              </CardFooter>
-            </Card>
+            <TripCard key={trip.id} trip={trip} onDelete={() => setTripToDelete(trip)} />
           ))}
         </div>
       )}
@@ -174,5 +144,92 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function TripCard({ trip, onDelete }: { trip: any; onDelete: () => void }) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchPhoto = async () => {
+      try {
+        const urls = await getDestinationPhotos(trip.destination, 1);
+        if (active && urls && urls.length > 0) {
+          setPhotoUrl(urls[0]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchPhoto();
+    return () => {
+      active = false;
+    };
+  }, [trip.destination]);
+
+  return (
+    <Card className="flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden border border-border/50 rounded-2xl h-full pt-0">
+      {/* Cover Image */}
+      <div className="h-44 w-full relative overflow-hidden bg-muted/20">
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={trip.destination}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-primary/5">
+            <Loader2 className="w-6 h-6 animate-spin text-primary/30" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+          <Badge className="bg-primary/95 text-primary-foreground border-none font-bold text-xs py-0.5 px-2.5 rounded-full backdrop-blur-sm shadow-sm">
+            {trip.days} Days
+          </Badge>
+          <span className="text-[11px] text-white font-bold bg-black/40 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+            {trip.budget}
+          </span>
+        </div>
+      </div>
+
+      <CardHeader className="pt-4 pb-2">
+        <div className="flex justify-between items-start gap-4">
+          <CardTitle className="text-lg font-bold line-clamp-1 text-foreground/90 group-hover:text-primary transition-colors">
+            {trip.destination}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="flex-1 pb-4">
+        <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-primary/60" />
+            <span>Planned on {new Date(trip.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Map className="w-3.5 h-3.5 text-primary/60" />
+            <span className="capitalize">{trip.travelStyle} Trip</span>
+          </div>
+        </div>
+      </CardContent>
+
+      <CardFooter className="border-t border-border/20 pt-3 pb-3 bg-muted/5 mt-auto">
+        <Link href={`/trip/${trip.id}`} className="w-full">
+          <Button variant="outline" className="w-full hover:bg-primary hover:text-primary-foreground rounded-xl transition-all duration-300 font-semibold text-sm">
+            View Itinerary
+          </Button>
+        </Link>
+      </CardFooter>
+    </Card>
   );
 }
