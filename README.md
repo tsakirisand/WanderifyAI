@@ -7,7 +7,7 @@
 ## 🌟 Key Features
 
 ### 🧠 1. AI-Powered Travel Engine
-- Uses the **Anthropic Claude API** to generate detailed, customized travel itineraries.
+- Uses the **Google Gemini API** to generate detailed, customized travel itineraries.
 - Suggests structured daily activities divided into Morning, Afternoon, and Evening slots.
 - Includes local travel tips, dining recommendations, and curated "Hidden Gems" for each destination.
 
@@ -50,7 +50,7 @@
 - **Authentication:** Firebase Client Authentication (including email verification and Google Provider login)
 - **Payments:** Stripe SDK / Stripe Hosted Checkout
 - **APIs:** 
-  - Anthropic SDK (`claude-haiku-4-5`)
+  - Google Gen AI SDK (`gemini-2.5-flash`)
   - WeatherAPI.com
   - Leaflet.js
 
@@ -66,8 +66,8 @@ FIREBASE_PROJECT_ID="your-project-id"
 FIREBASE_CLIENT_EMAIL="your-firebase-client-email"
 FIREBASE_PRIVATE_KEY="your-firebase-private-key"
 
-# Anthropic Claude API Key
-ANTHROPIC_API_KEY="your-anthropic-key"
+# Google Gemini API Key
+GEMINI_API_KEY="your-gemini-key"
 
 # WeatherAPI.com API Key
 WEATHER_API_KEY="your-weatherapi-key"
