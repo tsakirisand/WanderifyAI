@@ -518,7 +518,7 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
                   </div>
 
                   {/* Day Content Card */}
-                  <div className={`w-[calc(100%-3.5rem)] bg-card border rounded-2xl p-6 transition-all duration-300 ${
+                  <div className={`w-[calc(100%-3.5rem)] bg-card border rounded-2xl p-4 sm:p-6 transition-all duration-300 ${
                     isActive 
                       ? "border-primary/40 shadow-lg shadow-primary/5 bg-primary/[0.01]" 
                       : "border-border/50 shadow-sm hover:border-border"
@@ -687,10 +687,10 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
               <CardContent className="pt-6 pb-6">
                 <div className="space-y-4">
                   {data.flight_suggestions.map((flight, idx) => (
-                    <div key={idx} className="flex flex-col gap-1 border-b border-border/20 pb-3 last:border-0 last:pb-0">
-                      <div className="flex justify-between items-baseline gap-2">
-                        <span className="font-bold text-foreground text-sm">{flight.route}</span>
-                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] py-0.5">
+                    <div key={idx} className="flex flex-col gap-2 border-b border-border/20 pb-4 last:border-0 last:pb-0">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                        <span className="font-bold text-foreground text-sm leading-snug">{flight.route}</span>
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] py-1 px-2.5 shrink-0 self-start sm:self-auto">
                           {flight.estimated_cost}
                         </Badge>
                       </div>
@@ -714,15 +714,15 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
               <CardContent className="pt-6 pb-6">
                 <div className="space-y-4">
                   {data.hotel_recommendations.map((hotel, idx) => (
-                    <div key={idx} className="flex gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start">
+                    <div key={idx} className="flex flex-col sm:flex-row gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start">
                       <PlacePhoto 
                         photoUrl={photoMapping[`hotel-${hotel.name}`]} 
-                        className="w-20 h-20 rounded-xl object-cover shadow-sm shrink-0" 
+                        className="w-full sm:w-20 h-36 sm:h-20 rounded-xl object-cover shadow-sm shrink-0" 
                       />
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex justify-between items-center gap-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-foreground text-sm truncate">{hotel.name}</span>
+                      <div className="flex-1 min-w-0 space-y-1 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-bold text-foreground text-sm leading-snug break-words">{hotel.name}</span>
                             <a 
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name + ", " + data.destination)}`}
                               target="_blank"
@@ -733,14 +733,14 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
                               <Navigation className="w-3.5 h-3.5 rotate-45" />
                             </a>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
                             <span className="text-[10px] text-muted-foreground font-semibold">{hotel.price_range}</span>
-                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5">
+                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0.5 px-1.5">
                               ★ {hotel.rating.replace("★", "").trim()}
                             </Badge>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{hotel.description}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-2">{hotel.description}</p>
                       </div>
                     </div>
                   ))}
@@ -791,15 +791,15 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
           <CardContent className="pt-6 pb-6">
             <ul className="space-y-4">
               {data.food_recommendations.map((food, idx) => (
-                <li key={idx} className="flex gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start">
+                <li key={idx} className="flex flex-col sm:flex-row gap-4 border-b border-border/20 pb-4 last:border-0 last:pb-0 items-start animate-in fade-in duration-300">
                   <PlacePhoto 
                     photoUrl={photoMapping[`food-${food.name}`]} 
-                    className="w-20 h-20 rounded-xl object-cover shadow-sm shrink-0" 
+                    className="w-full sm:w-20 h-36 sm:h-20 rounded-xl object-cover shadow-sm shrink-0" 
                   />
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-foreground text-sm truncate">{food.name}</span>
+                  <div className="flex-1 min-w-0 space-y-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-bold text-foreground text-sm leading-snug break-words">{food.name}</span>
                         <a 
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(food.name + ", " + data.destination)}`}
                           target="_blank"
@@ -810,11 +810,11 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
                           <Navigation className="w-3.5 h-3.5 rotate-45" />
                         </a>
                       </div>
-                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0 px-1.5 shrink-0">
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-none font-bold text-[10px] py-0.5 px-1.5 shrink-0 self-start sm:self-auto">
                         ★ {food.rating.replace("★", "").trim()}
                       </Badge>
                     </div>
-                    <span className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{food.description}</span>
+                    <span className="text-xs text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-2">{food.description}</span>
                   </div>
                 </li>
               ))}
@@ -842,20 +842,20 @@ function TimeSection({ title, icon, activities, destination, photoMapping }: { t
               className="w-16 h-16 rounded-xl object-cover shadow-sm hover:scale-105 transition-transform duration-500 shrink-0" 
             />
             <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="flex items-center gap-1.5 group/link">
-                  <span className="font-semibold text-foreground text-sm leading-tight truncate max-w-[150px] md:max-w-xs">{act.place}</span>
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                <div className="flex items-center gap-1.5 group/link min-w-0">
+                  <span className="font-semibold text-foreground text-sm leading-snug break-words">{act.place}</span>
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.place + ", " + destination)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5"
+                    className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 shrink-0"
                     title="Open in Google Maps"
                   >
                     <Navigation className="w-3.5 h-3.5 rotate-45" />
                   </a>
                 </div>
-                {act.time && <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{act.time}</span>}
+                {act.time && <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold whitespace-nowrap self-start sm:self-auto">{act.time}</span>}
               </div>
               <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">{act.description}</p>
             </div>
