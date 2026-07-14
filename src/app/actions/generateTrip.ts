@@ -14,14 +14,35 @@ export async function generateItineraryData(
   budget: string,
   travelStyle: string,
   interests: string[],
-  notes: string
+  notes: string,
+  startDate?: string
 ) {
+  let weatherContext = "";
+  if (startDate) {
+    try {
+      const { getWeatherAction } = await import("./getWeather");
+      const weather = await getWeatherAction(destination, startDate);
+      if (weather) {
+        weatherContext = `The real-time/historical weather forecast/average for ${destination} starting on ${startDate} is:
+- High/Typical Temp: ${weather.temp}°C
+- Condition: ${weather.condition}
+- Humidity: ${weather.humidity}%
+- Wind: ${weather.wind} kph
+Please customize the activities, recommendations, and tips based on this weather context (e.g. suggesting indoor activities if it is rainy, advising proper clothing, etc.).`;
+      }
+    } catch (error) {
+      console.error("Failed to fetch weather for prompt grounding:", error);
+    }
+  }
+
   const prompt = `You are a senior travel agent. Create a highly detailed, personalized travel itinerary for a ${days}-day trip to ${destination}.
   
 Budget: ${budget}
 Travel Style: ${travelStyle}
 Interests: ${interests.join(", ")}
 Additional Notes: ${notes}
+${weatherContext ? `\n${weatherContext}\n` : ""}
+Use Google Search grounding to find real, currently operating and highly rated local attractions, hotels, restaurants, and flight routes. Do not invent or hallucinate names. All names, ratings, and descriptions must be based on real-world data.
 
 Keep all descriptions concise (under 25 words per description) to ensure it fits in the response size limits.
 Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`json), without any preamble, and without any postscript. Provide ONLY the JSON object. Use exactly this schema:
@@ -55,6 +76,7 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
     contents: prompt,
     config: {
       responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }],
     },
   });
 
@@ -90,7 +112,7 @@ export async function generateTripAction(formData: FormData, userId: string) {
   const notes = formData.get("notes") as string;
   const startDate = formData.get("startDate") as string;
 
-  const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes);
+  const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes, startDate);
 
   // Extract unique places to geocode once at trip creation time
   const places: string[] = [];

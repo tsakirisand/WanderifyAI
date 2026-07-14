@@ -93,7 +93,7 @@ export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
     }
 
     // Generate AI itinerary using the extracted helper
-    const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes);
+    const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes, startDate);
 
     // Save to Firestore using sessionId as document ID to guarantee uniqueness
     await setDoc(tripDocRef, {

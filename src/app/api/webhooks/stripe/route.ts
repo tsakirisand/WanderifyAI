@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         const userId = meta.userId;
 
         // 1. Generate the AI travel itinerary data
-        const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes);
+        const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes, startDate);
 
         // 2. Save it directly to Firestore database using session.id as document ID
         await setDoc(tripDocRef, {
