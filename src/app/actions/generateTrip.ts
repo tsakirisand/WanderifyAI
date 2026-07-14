@@ -35,14 +35,32 @@ Please customize the activities, recommendations, and tips based on this weather
     }
   }
 
-  const prompt = `You are a senior travel agent. Create a highly detailed, personalized travel itinerary for a ${days}-day trip to ${destination}.
+  const researchPrompt = `You are a senior travel agent. Research and plan a highly detailed, personalized travel itinerary for a ${days}-day trip to ${destination}.
   
 Budget: ${budget}
 Travel Style: ${travelStyle}
 Interests: ${interests.join(", ")}
 Additional Notes: ${notes}
 ${weatherContext ? `\n${weatherContext}\n` : ""}
+
 Use Google Search grounding to find real, currently operating and highly rated local attractions, hotels, restaurants, and flight routes. Do not invent or hallucinate names. All names, ratings, and descriptions must be based on real-world data.
+
+Provide a detailed day-by-day plan, hotel recommendations, food recommendations, and flight suggestions.`;
+
+  const researchResponse = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: researchPrompt,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  const researchResult = researchResponse.text || '';
+
+  const formatPrompt = `You are a data formatting assistant. Your job is to convert the following travel research notes into a structured JSON itinerary according to the schema.
+  
+Research Notes:
+${researchResult}
 
 Keep all descriptions concise (under 25 words per description) to ensure it fits in the response size limits.
 Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`json), without any preamble, and without any postscript. Provide ONLY the JSON object. Use exactly this schema:
@@ -73,10 +91,9 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: prompt,
+    contents: formatPrompt,
     config: {
       responseMimeType: "application/json",
-      tools: [{ googleSearch: {} }],
     },
   });
 
