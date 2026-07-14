@@ -576,11 +576,11 @@ export function ItineraryTimeline({ data, startDate, initialCoordinates, tripId 
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   ) : activeWeather.isReal ? (
                     <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px]">
-                      {activeWeather.isHistorical ? "Typical weather" : "Real weather"}
+                      {activeWeather.isHistorical ? "Seasonal Average" : "Live Forecast"}
                     </Badge>
                   ) : (
-                    <Badge className="bg-yellow-500/10 text-yellow-500 border-none font-bold text-[10px]">
-                      Simulated
+                    <Badge className="bg-muted text-muted-foreground border-none font-bold text-[10px]">
+                      Typical Weather
                     </Badge>
                   )}
                 </div>

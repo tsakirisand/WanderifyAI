@@ -137,12 +137,12 @@ export default function NewTripPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary mb-4">
             <Plane className="w-4 h-4" />
-            <span className="text-sm font-medium">AI Trip Planner</span>
+            <span className="text-sm font-medium">Wanderify Custom Planner</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">
             Plan Your Perfect Trip
           </h1>
-          <p className="text-muted-foreground">Let AI create your personalized itinerary</p>
+          <p className="text-muted-foreground">Get a customized, professionally-curated day-by-day travel guide</p>
         </div>
 
         {/* Step Indicator */}
@@ -405,9 +405,9 @@ export default function NewTripPage() {
                   size="lg"
                 >
                   {isPending ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Customizing...</>
                   ) : (
-                    <><Sparkles className="w-5 h-5" /> Generate Trip with AI</>
+                    <><Sparkles className="w-5 h-5" /> Create Custom Itinerary</>
                   )}
                 </Button>
               )}

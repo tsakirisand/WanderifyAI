@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 const STATS = [
-  { label: "Trips Created", value: "18,400+", icon: Sparkles, desc: "Personalized AI itineraries" },
+  { label: "Trips Created", value: "18,400+", icon: Sparkles, desc: "Personalized itineraries" },
   { label: "Destinations Covered", value: "160+", icon: Globe, desc: "Cities and countries worldwide" },
   { label: "Satisfaction Rate", value: "99.4%", icon: Star, desc: "Rated by our happy travelers" },
 ];
@@ -74,8 +74,8 @@ const REVIEWS = [
 
 const FAQS = [
   {
-    question: "How does the AI create my itinerary?",
-    answer: "Our advanced travel agent model analyzes your destination, interests, trip duration, budget, and notes. It then dynamically researches places, timings, and routing paths to build a optimized day-by-day travel plan tailormade for you.",
+    question: "How is my itinerary created?",
+    answer: "Our advanced travel agent engine analyzes your destination, interests, trip duration, budget, and notes. It then dynamically researches places, timings, and routing paths to build an optimized day-by-day travel plan tailormade for you.",
   },
   {
     question: "Can I customize the trip after it is generated?",
@@ -121,14 +121,14 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Sparkles className="w-4 h-4" />
-            <span className="text-sm font-semibold tracking-wide">AI-Powered Travel Planning</span>
+            <span className="text-sm font-semibold tracking-wide">Smart Travel Planning</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
             Your Dream Trip, <br />
             <span className="text-foreground">Planned in Seconds</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150 leading-relaxed">
-            Stop spending hours researching. Tell us your destination, budget, and interests, and our AI will generate a complete, personalized day-by-day itinerary.
+            Stop spending hours researching. Tell us your destination, budget, and interests, and receive a complete, personalized day-by-day itinerary instantly.
           </p>
           <div className="flex flex-wrap justify-center items-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
             <Link href="/login">

@@ -97,7 +97,7 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-bold mb-2">No trips yet</h3>
           <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-            You haven't generated any itineraries yet. Let our AI plan your first dream trip!
+            You haven't generated any itineraries yet. Plan your first dream trip now!
           </p>
           <Link href="/trip/new">
             <Button>Create your first trip</Button>
