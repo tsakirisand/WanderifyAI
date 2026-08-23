@@ -1,5 +1,7 @@
 "use server";
 
+import { GoogleGenAI } from "@google/genai";
+
 function getAIClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
