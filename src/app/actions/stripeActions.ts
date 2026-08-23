@@ -25,6 +25,10 @@ interface TripConfig {
 
 export async function createCheckoutSessionAction(config: TripConfig, originUrl: string) {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return { error: "Stripe API key (STRIPE_SECRET_KEY) is missing on the server environment." };
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -56,10 +60,14 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
       },
     });
 
+    if (!session.url) {
+      return { error: "Stripe session was created but no checkout URL was returned." };
+    }
+
     return { url: session.url };
   } catch (error: any) {
     console.error("Failed to create Stripe Checkout session:", error);
-    throw new Error(error.message || "Failed to create checkout session");
+    return { error: error.message || "Failed to create checkout session" };
   }
 }
 
