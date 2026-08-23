@@ -54,7 +54,7 @@
 - **Authentication:** Firebase Client Authentication (including email verification and Google Provider login)
 - **Payments:** Stripe SDK / Stripe Hosted Checkout
 - **APIs:** 
-  - Google Gen AI SDK (`gemini-2.5-flash`)
+  - Google Gen AI SDK (`gemini-2.0-flash`)
   - WeatherAPI.com
   - Leaflet.js
 

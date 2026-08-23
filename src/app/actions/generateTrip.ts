@@ -4,9 +4,47 @@ import { db } from "@/lib/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+function getAIClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured in environment variables.");
+  }
+  return new GoogleGenAI({ apiKey });
+}
+
+async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  contents: string,
+  options?: { tools?: any[]; responseMimeType?: string }
+) {
+  const modelsToTry = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-1.5-flash"];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    // 1. Try with tools if specified
+    if (options?.tools) {
+      try {
+        const config: any = { tools: options.tools };
+        if (options?.responseMimeType) config.responseMimeType = options.responseMimeType;
+        return await ai.models.generateContent({ model, contents, config });
+      } catch (err: any) {
+        console.warn(`Model ${model} WITH tools failed (${err?.message || err}). Trying WITHOUT tools...`);
+        lastError = err;
+      }
+    }
+
+    // 2. Try without tools
+    try {
+      const config: any = {};
+      if (options?.responseMimeType) config.responseMimeType = options.responseMimeType;
+      return await ai.models.generateContent({ model, contents, config });
+    } catch (err: any) {
+      console.warn(`Model ${model} WITHOUT tools failed (${err?.message || err}). Trying next model...`);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Failed to generate content with Gemini AI.");
+}
 
 export async function generateItineraryData(
   destination: string,
@@ -17,6 +55,8 @@ export async function generateItineraryData(
   notes: string,
   startDate?: string
 ) {
+  const ai = getAIClient();
+
   let weatherContext = "";
   if (startDate) {
     try {
@@ -47,15 +87,11 @@ Use Google Search grounding to find real, currently operating and highly rated l
 
 Provide a detailed day-by-day plan, hotel recommendations, food recommendations, and flight suggestions.`;
 
-  const researchResponse = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: researchPrompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
+  const researchResponse = await generateContentWithFallback(ai, researchPrompt, {
+    tools: [{ googleSearch: {} }],
   });
 
-  const researchResult = researchResponse.text || '';
+  const researchResult = researchResponse.text || "";
 
   const formatPrompt = `You are a data formatting assistant. Your job is to convert the following travel research notes into a structured JSON itinerary according to the schema.
   
@@ -89,15 +125,11 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
   "summary": "A 2-3 sentence engaging summary of the trip"
 }`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: formatPrompt,
-    config: {
-      responseMimeType: "application/json",
-    },
+  const response = await generateContentWithFallback(ai, formatPrompt, {
+    responseMimeType: "application/json",
   });
 
-  const responseContent = response.text || '';
+  const responseContent = response.text || "";
   
   let cleanContent = responseContent.trim();
   if (cleanContent.startsWith("```json")) {

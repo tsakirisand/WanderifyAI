@@ -1,15 +1,19 @@
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+function getAIClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing");
+  }
+  return new GoogleGenAI({ apiKey });
+}
 
 export async function geocodePlacesAction(destination: string, places: string[]): Promise<Record<string, { lat: number; lon: number }>> {
   if (!places || places.length === 0) return {};
 
   try {
+    const ai = getAIClient();
+
     const prompt = `You are a geocoding assistant. Given the destination "${destination}" and a list of specific sights, activities, or place names within it, find the exact latitude and longitude coordinates (WGS 84 format) for each item.
 
 Guidelines:
@@ -31,13 +35,29 @@ Your response must be a valid JSON object matching this schema:
 
 Provide ONLY the raw JSON output. No markdown, no HTML, no explanation, no preamble, and no postscript.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+    const modelsToTry = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-1.5-flash"];
+    let response: any = null;
+    let lastErr: any = null;
+
+    for (const model of modelsToTry) {
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+        if (response?.text) break;
+      } catch (err: any) {
+        lastErr = err;
+      }
+    }
+
+    if (!response) {
+      console.error("Geocoding AI calls failed across all models:", lastErr);
+      return {};
+    }
 
     const text = response.text || "{}";
     let clean = text.trim();
