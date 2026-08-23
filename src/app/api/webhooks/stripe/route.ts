@@ -7,7 +7,7 @@ import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 function getStripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
-    throw new Error("STRIPE_SECRET_KEY is missing in Vercel environment variables.");
+    return null;
   }
   return new Stripe(key, {
     apiVersion: "2025-01-27.acacia" as any,
@@ -21,6 +21,9 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
   try {
     const stripe = getStripeClient();
+    if (!stripe) {
+      return new Response("STRIPE_SECRET_KEY missing", { status: 500 });
+    }
     event = stripe.webhooks.constructEvent(
       body, 
       signature, 

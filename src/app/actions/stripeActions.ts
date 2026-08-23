@@ -8,7 +8,7 @@ import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 function getStripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
-    throw new Error("STRIPE_SECRET_KEY is missing in Vercel environment variables. Please configure STRIPE_SECRET_KEY in Vercel settings.");
+    return null;
   }
   return new Stripe(key, {
     apiVersion: "2025-01-27.acacia" as any,
@@ -30,6 +30,9 @@ interface TripConfig {
 export async function createCheckoutSessionAction(config: TripConfig, originUrl: string): Promise<{ url?: string; error?: string }> {
   try {
     const stripe = getStripeClient();
+    if (!stripe) {
+      return { error: "STRIPE_SECRET_KEY is missing in Vercel environment variables. Please add STRIPE_SECRET_KEY in Vercel Dashboard ➔ Settings ➔ Environment Variables." };
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -72,6 +75,9 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
 export async function verifyPaymentAndGenerateTripAction(sessionId: string): Promise<{ success: boolean; tripId?: string; error?: string }> {
   try {
     const stripe = getStripeClient();
+    if (!stripe) {
+      return { success: false, error: "STRIPE_SECRET_KEY is missing in Vercel environment variables." };
+    }
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
