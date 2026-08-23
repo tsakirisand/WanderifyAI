@@ -82,7 +82,7 @@ JSON Schema:
   });
 
   const response = await anthropic.messages.create({
-    model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
+    model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
     max_tokens: 4096,
     messages: [
       {
