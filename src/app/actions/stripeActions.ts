@@ -101,12 +101,31 @@ export async function verifyPaymentAndGenerateTripAction(
     const startDate = meta.startDate;
     const userId = meta.userId;
 
-    // Check if the trip was already generated (Admin SDK — bypasses Firestore rules)
+    // Check if the trip was already generated or is generating
     const tripDocRef = adminDb.collection("trips").doc(sessionId);
-    const existingDoc = await tripDocRef.get();
-    if (existingDoc.exists) {
+    let existingDoc = await tripDocRef.get();
+    
+    // If doc exists and has aiResult, return immediately
+    if (existingDoc.exists && existingDoc.data()?.aiResult) {
       return { tripId: sessionId };
     }
+
+    // If another process is currently generating, wait up to 15 seconds for completion
+    if (existingDoc.exists && existingDoc.data()?.isGenerating) {
+      for (let i = 0; i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        existingDoc = await tripDocRef.get();
+        if (existingDoc.exists && existingDoc.data()?.aiResult) {
+          return { tripId: sessionId };
+        }
+      }
+    }
+
+    // Set lock flag to prevent duplicate parallel AI generation calls
+    await tripDocRef.set(
+      { isGenerating: true, createdAt: new Date().toISOString() },
+      { merge: true }
+    );
 
     // Generate AI itinerary
     const aiResult = await generateItineraryData(
@@ -129,6 +148,7 @@ export async function verifyPaymentAndGenerateTripAction(
       interests,
       aiResult,
       startDate: startDate || null,
+      isGenerating: false,
       createdAt: new Date().toISOString(),
     });
 

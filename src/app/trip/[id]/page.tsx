@@ -26,21 +26,15 @@ export default function TripPage() {
     } else if (user) {
       const fetchTrip = async () => {
         try {
-          const docRef = doc(db, "trips", id);
-          const docSnap = await getDoc(docRef);
+          const { getTripById } = await import("@/app/actions/tripActions");
+          const tripData = await getTripById(id, user.uid);
           
-          if (!docSnap.exists()) {
+          if (!tripData) {
             notFound();
             return;
           }
           
-          const data = docSnap.data();
-          if (data.userId !== user.uid) {
-            router.push("/dashboard");
-            return;
-          }
-          
-          setTrip({ id: docSnap.id, ...data });
+          setTrip(tripData);
         } catch (error) {
           console.error("Error fetching trip:", error);
         } finally {

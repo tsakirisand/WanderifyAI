@@ -30,13 +30,19 @@ export async function POST(req: Request) {
     const meta = session.metadata;
     if (meta) {
       try {
-        // Check if the trip was already generated (Admin SDK — bypasses Firestore rules)
+        // Check if the trip was already generated or is generating
         const tripDocRef = adminDb.collection("trips").doc(session.id);
         const existingDoc = await tripDocRef.get();
-        if (existingDoc.exists) {
-          console.log("Trip already generated for session:", session.id);
+        if (existingDoc.exists && (existingDoc.data()?.aiResult || existingDoc.data()?.isGenerating)) {
+          console.log("Trip already generated or in progress for session:", session.id);
           return NextResponse.json({ received: true });
         }
+
+        // Set lock flag
+        await tripDocRef.set(
+          { isGenerating: true, createdAt: new Date().toISOString() },
+          { merge: true }
+        );
 
         const destination = meta.destination;
         const days = parseInt(meta.days, 10);
@@ -60,6 +66,7 @@ export async function POST(req: Request) {
           interests,
           aiResult,
           startDate: startDate || null,
+          isGenerating: false,
           createdAt: new Date().toISOString(),
         });
         

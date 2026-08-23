@@ -34,13 +34,8 @@ export default function DashboardPage() {
     } else if (user) {
       const fetchTrips = async () => {
         try {
-          const q = query(collection(db, "trips"), where("userId", "==", user.uid));
-          const querySnapshot = await getDocs(q);
-          const data = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const { getUserTrips } = await import("@/app/actions/tripActions");
+          const data = await getUserTrips(user.uid);
           setTrips(data);
         } catch (error) {
           console.error("Error fetching trips:", error);
@@ -57,7 +52,8 @@ export default function DashboardPage() {
     if (!user || !tripToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteDoc(doc(db, "trips", tripToDelete.id));
+      const { deleteTrip } = await import("@/app/actions/tripActions");
+      await deleteTrip(tripToDelete.id, user.uid);
       setTrips(prev => prev.filter(t => t.id !== tripToDelete.id));
       setTripToDelete(null);
     } catch (error) {
