@@ -21,11 +21,15 @@ export async function createCheckoutSessionAction(
   config: TripConfig,
   originUrl: string
 ): Promise<{ url?: string | null; error?: string }> {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-01-27.acacia" as any,
-  });
-
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return { error: "Stripe secret key is not configured on the server." };
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-01-27.acacia" as any,
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -67,11 +71,15 @@ export async function createCheckoutSessionAction(
 export async function verifyPaymentAndGenerateTripAction(
   sessionId: string
 ): Promise<{ tripId?: string; error?: string }> {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-01-27.acacia" as any,
-  });
-
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return { error: "Stripe secret key is not configured on the server." };
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-01-27.acacia" as any,
+    });
+
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
