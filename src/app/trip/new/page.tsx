@@ -80,6 +80,7 @@ export default function NewTripPage() {
   const [notes, setNotes] = useState("");
   const [startDate, setStartDate] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -104,6 +105,7 @@ export default function NewTripPage() {
   const handleSubmit = async () => {
     if (!user) { router.push("/login"); return; }
     setIsPending(true);
+    setCheckoutError(null);
     try {
       const config = {
         destination,
@@ -116,16 +118,21 @@ export default function NewTripPage() {
         startDate,
         userId: user.uid,
       };
-      
-      const originUrl = window.location.origin + window.location.pathname; // http://localhost:3000/trip/new
-      const { url } = await createCheckoutSessionAction(config, originUrl);
-      if (url) {
-        window.location.href = url;
+
+      const originUrl = window.location.origin + window.location.pathname;
+      const result = await createCheckoutSessionAction(config, originUrl);
+      if (result.error) {
+        setCheckoutError(result.error);
+        setIsPending(false);
+      } else if (result.url) {
+        window.location.href = result.url;
       } else {
-        throw new Error("Stripe did not return a checkout URL.");
+        setCheckoutError("Stripe did not return a checkout URL. Please try again.");
+        setIsPending(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setCheckoutError(error.message || "Failed to start checkout. Please try again.");
       setIsPending(false);
     }
   };
@@ -412,6 +419,14 @@ export default function NewTripPage() {
                 </Button>
               )}
             </div>
+
+            {/* Checkout error banner */}
+            {checkoutError && (
+              <div className="mt-4 flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
+                <span>⚠️</span>
+                <p><strong>Checkout failed:</strong> {checkoutError}</p>
+              </div>
+            )}
 
           </CardContent>
         </Card>

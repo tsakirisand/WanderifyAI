@@ -17,7 +17,10 @@ interface TripConfig {
   userId: string;
 }
 
-export async function createCheckoutSessionAction(config: TripConfig, originUrl: string) {
+export async function createCheckoutSessionAction(
+  config: TripConfig,
+  originUrl: string
+): Promise<{ url?: string | null; error?: string }> {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2025-01-27.acacia" as any,
   });
@@ -57,7 +60,7 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
     return { url: session.url };
   } catch (error: any) {
     console.error("Failed to create Stripe Checkout session:", error);
-    throw new Error(error.message || "Failed to create checkout session");
+    return { error: error.message || "Failed to create checkout session" };
   }
 }
 
