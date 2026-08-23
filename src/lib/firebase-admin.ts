@@ -1,6 +1,5 @@
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
 
 let adminApp: App | null = null;
 
@@ -28,7 +27,5 @@ if (!getApps().length && hasFirebaseCredentials) {
   adminApp = getApps()[0];
 }
 
-// ONLY call getFirestore/getAuth if an app was actually initialized successfully.
-// Using hasFirebaseCredentials alone is wrong — credentials can exist but still fail.
-export const adminDb = adminApp ? getFirestore(adminApp) : null as any;
-export const adminAuth = adminApp ? getAuth(adminApp) : null as any;
+// ONLY call getFirestore if an app was actually initialized successfully.
+export const adminDb = adminApp ? getFirestore(adminApp) : (null as any);
