@@ -16,21 +16,21 @@ export async function getWeatherAction(destination: string, dateStr: string) {
   let isHistorical = false;
 
   if (diffDays >= -1 && diffDays <= 10) {
-    url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(destination)}&dt=${dateStr}`;
+    url = `http://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(destination)}&dt=${dateStr}`;
   } else {
     isHistorical = true;
     // Calculate the same calendar date but of last year so history.json succeeds
     const lastYearDate = new Date(targetDate);
     lastYearDate.setFullYear(lastYearDate.getFullYear() - 1);
     const lastYearDateStr = lastYearDate.toISOString().split("T")[0];
-    url = `https://api.weatherapi.com/v1/history.json?key=${apiKey}&q=${encodeURIComponent(destination)}&dt=${lastYearDateStr}`;
+    url = `http://api.weatherapi.com/v1/history.json?key=${apiKey}&q=${encodeURIComponent(destination)}&dt=${lastYearDateStr}`;
   }
 
   try {
     const res = await fetch(url);
     if (!res.ok) {
       if (isHistorical) {
-        const fallbackUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(destination)}&days=10`;
+        const fallbackUrl = `http://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(destination)}&days=10`;
         const fallbackRes = await fetch(fallbackUrl);
         if (fallbackRes.ok) {
           const fallbackData = await fallbackRes.json();

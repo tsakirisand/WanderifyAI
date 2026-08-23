@@ -4,10 +4,6 @@
 
 ---
 
-## 🌐 Live Demo & Deployment
-🔗 **Public Application URL:** [https://wanderify.vercel.app](https://wanderify.vercel.app)
-
-
 ## 🌟 Key Features
 
 ### 🧠 1. AI-Powered Travel Engine
@@ -54,7 +50,7 @@
 - **Authentication:** Firebase Client Authentication (including email verification and Google Provider login)
 - **Payments:** Stripe SDK / Stripe Hosted Checkout
 - **APIs:** 
-  - Google Gen AI SDK (`gemini-2.0-flash`)
+  - Google Gen AI SDK (`gemini-2.5-flash`)
   - WeatherAPI.com
   - Leaflet.js
 

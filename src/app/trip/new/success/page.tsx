@@ -33,31 +33,26 @@ function StripeSuccessContent() {
     return () => clearInterval(interval);
   }, [error]);
 
-  const verifyAndGenerate = async () => {
-    try {
-      const result = await verifyPaymentAndGenerateTripAction(sessionId!);
-      if (result.success && result.tripId) {
-        router.push(`/trip/${result.tripId}`);
-      } else {
-        setError(result.error || "An unexpected error occurred during trip generation.");
-      }
-    } catch (err: any) {
-      console.error("Verification failed:", err);
-      setError(err.message || "An unexpected error occurred during trip generation.");
-    }
-  };
-
   useEffect(() => {
     if (!sessionId || triggerRef.current) return;
     triggerRef.current = true;
+
+    const verifyAndGenerate = async () => {
+      try {
+        const result = await verifyPaymentAndGenerateTripAction(sessionId);
+        if (result.success && result.tripId) {
+          router.push(`/trip/${result.tripId}`);
+        } else {
+          setError(result.error || "An unexpected error occurred during trip generation.");
+        }
+      } catch (err: any) {
+        console.error("Verification failed:", err);
+        setError(err.message || "An unexpected error occurred during trip generation.");
+      }
+    };
+
     verifyAndGenerate();
   }, [sessionId, router]);
-
-  const handleRetry = () => {
-    setError(null);
-    setStepIndex(0);
-    verifyAndGenerate();
-  };
 
   if (!sessionId) {
     return (
@@ -93,7 +88,7 @@ function StripeSuccessContent() {
               <p className="text-sm text-muted-foreground leading-relaxed">{error}</p>
             </div>
             <div className="flex flex-col gap-2 pt-2">
-              <Button onClick={handleRetry} className="w-full">
+              <Button onClick={() => router.push("/trip/new")} className="w-full">
                 Try Again
               </Button>
               <Button variant="ghost" onClick={() => router.push("/dashboard")} className="w-full">

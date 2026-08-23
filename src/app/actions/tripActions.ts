@@ -1,17 +1,28 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 
 export async function getUserTrips(userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const snapshot = await adminDb.collection("trips").where("userId", "==", userId).get();
-
-  const trips = snapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  let trips: any[] = [];
+  if (adminDb) {
+    const snap = await adminDb.collection("trips").where("userId", "==", userId).get();
+    trips = snap.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } else {
+    const q = query(collection(db, "trips"), where("userId", "==", userId));
+    const snapshot = await getDocs(q);
+    trips = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  }
 
   // Sort by createdAt descending in JS to avoid needing a composite index
   trips.sort((a: any, b: any) => {
@@ -24,24 +35,39 @@ export async function getUserTrips(userId: string) {
 export async function getTripById(id: string, userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const tripDocRef = adminDb.collection("trips").doc(id);
-  const tripDoc = await tripDocRef.get();
-  
-  if (!tripDoc.exists) return null;
-  const data = tripDoc.data();
-  if (data?.userId !== userId) return null;
-
-  return { id: tripDoc.id, ...data } as any;
+  if (adminDb) {
+    const snap = await adminDb.collection("trips").doc(id).get();
+    if (!snap.exists) return null;
+    const data = snap.data();
+    if (data?.userId !== userId) return null;
+    return { id: snap.id, ...data } as any;
+  } else {
+    const tripDocRef = doc(db, "trips", id);
+    const tripDoc = await getDoc(tripDocRef);
+    if (!tripDoc.exists()) return null;
+    const data = tripDoc.data();
+    if (data?.userId !== userId) return null;
+    return { id: tripDoc.id, ...data } as any;
+  }
 }
 
 export async function deleteTrip(id: string, userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const tripDocRef = adminDb.collection("trips").doc(id);
-  const tripDoc = await tripDocRef.get();
-  if (tripDoc.exists && tripDoc.data()?.userId === userId) {
-    await tripDocRef.delete();
+  if (adminDb) {
+    const ref = adminDb.collection("trips").doc(id);
+    const snap = await ref.get();
+    if (snap.exists && snap.data()?.userId === userId) {
+      await ref.delete();
+    }
+  } else {
+    const tripDocRef = doc(db, "trips", id);
+    const tripDoc = await getDoc(tripDocRef);
+    if (tripDoc.exists() && tripDoc.data()?.userId === userId) {
+      await deleteDoc(tripDocRef);
+    }
   }
 
   revalidatePath("/dashboard");
 }
+
