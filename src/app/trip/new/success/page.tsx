@@ -40,10 +40,10 @@ function StripeSuccessContent() {
     const verifyAndGenerate = async () => {
       try {
         const result = await verifyPaymentAndGenerateTripAction(sessionId);
-        if (result.success && result.tripId) {
+        if (result.tripId) {
           router.push(`/trip/${result.tripId}`);
         } else {
-          setError(result.error || "An unexpected error occurred during trip generation.");
+          throw new Error("Did not receive a generated trip ID.");
         }
       } catch (err: any) {
         console.error("Verification failed:", err);

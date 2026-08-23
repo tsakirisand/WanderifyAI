@@ -1,15 +1,12 @@
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
 import { GoogleGenAI } from "@google/genai";
 
-function getAiClient() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY is missing from server environment variables.");
-  return new GoogleGenAI({ apiKey: key });
-}
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 export async function generateItineraryData(
   destination: string,
@@ -49,8 +46,6 @@ ${weatherContext ? `\n${weatherContext}\n` : ""}
 Use Google Search grounding to find real, currently operating and highly rated local attractions, hotels, restaurants, and flight routes. Do not invent or hallucinate names. All names, ratings, and descriptions must be based on real-world data.
 
 Provide a detailed day-by-day plan, hotel recommendations, food recommendations, and flight suggestions.`;
-
-  const ai = getAiClient();
 
   const researchResponse = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -154,7 +149,8 @@ export async function generateTripAction(formData: FormData, userId: string) {
     console.error("Geocoding failed during generation:", error);
   }
 
-  const tripPayload = {
+  const newTripRef = doc(collection(db, "trips"));
+  await setDoc(newTripRef, {
     userId,
     destination,
     days,
@@ -165,15 +161,7 @@ export async function generateTripAction(formData: FormData, userId: string) {
     coordinates,
     startDate: startDate || null,
     createdAt: new Date().toISOString(),
-  };
+  });
 
-  if (adminDb) {
-    const docRef = adminDb.collection("trips").doc();
-    await docRef.set(tripPayload);
-    return docRef.id;
-  } else {
-    const newTripRef = doc(collection(db, "trips"));
-    await setDoc(newTripRef, tripPayload);
-    return newTripRef.id;
-  }
+  return newTripRef.id;
 }

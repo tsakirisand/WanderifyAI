@@ -2,19 +2,14 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-function getAiClient() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return null;
-  return new GoogleGenAI({ apiKey: key });
-}
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 export async function geocodePlacesAction(destination: string, places: string[]): Promise<Record<string, { lat: number; lon: number }>> {
   if (!places || places.length === 0) return {};
 
   try {
-    const ai = getAiClient();
-    if (!ai) return {};
-
     const prompt = `You are a geocoding assistant. Given the destination "${destination}" and a list of specific sights, activities, or place names within it, find the exact latitude and longitude coordinates (WGS 84 format) for each item.
 
 Guidelines:
