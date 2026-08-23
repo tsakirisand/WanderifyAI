@@ -38,7 +38,7 @@ Your response must be ONLY a valid JSON object matching this schema:
 Provide ONLY the raw JSON output. No markdown, no HTML, no explanation, no preamble, and no postscript.`;
 
     const response = await anthropic.messages.create({
-      model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
+      model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-latest",
       max_tokens: 2048,
       messages: [
         {
