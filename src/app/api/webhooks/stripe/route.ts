@@ -6,9 +6,15 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { generateItineraryData } from "@/app/actions/generateTrip";
 import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
+function getStripeClient() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    return null;
+  }
+  return new Stripe(key, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -16,6 +22,10 @@ export async function POST(req: Request) {
   
   let event: Stripe.Event;
   try {
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return new Response("STRIPE_SECRET_KEY missing", { status: 500 });
+    }
     event = stripe.webhooks.constructEvent(
       body, 
       signature, 

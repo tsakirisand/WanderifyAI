@@ -7,9 +7,15 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { generateItineraryData } from "@/app/actions/generateTrip";
 import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    return null;
+  }
+  return new Stripe(key, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 interface TripConfig {
   destination: string;
@@ -25,8 +31,9 @@ interface TripConfig {
 
 export async function createCheckoutSessionAction(config: TripConfig, originUrl: string) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return { error: "Stripe API key (STRIPE_SECRET_KEY) is missing on the server environment." };
+    const stripe = getStripe();
+    if (!stripe) {
+      return { error: "Stripe secret key (STRIPE_SECRET_KEY) is missing from environment variables." };
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -67,7 +74,7 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
     return { url: session.url };
   } catch (error: any) {
     console.error("Failed to create Stripe Checkout session:", error);
-    return { error: error.message || "Failed to create checkout session" };
+    return { error: error?.message || "Failed to create checkout session" };
   }
 }
 
@@ -75,6 +82,11 @@ export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
   try {
     if (!sessionId) {
       return { success: false, error: "No checkout session ID provided." };
+    }
+
+    const stripe = getStripe();
+    if (!stripe) {
+      return { success: false, error: "Stripe secret key (STRIPE_SECRET_KEY) is missing from environment variables." };
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -157,4 +169,5 @@ export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
     };
   }
 }
+
 
