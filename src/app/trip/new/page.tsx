@@ -80,6 +80,7 @@ export default function NewTripPage() {
   const [notes, setNotes] = useState("");
   const [startDate, setStartDate] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -104,6 +105,7 @@ export default function NewTripPage() {
   const handleSubmit = async () => {
     if (!user) { router.push("/login"); return; }
     setIsPending(true);
+    setFormError(null);
     try {
       const config = {
         destination,
@@ -118,14 +120,16 @@ export default function NewTripPage() {
       };
       
       const originUrl = window.location.origin + window.location.pathname; // http://localhost:3000/trip/new
-      const { url } = await createCheckoutSessionAction(config, originUrl);
-      if (url) {
-        window.location.href = url;
+      const res = await createCheckoutSessionAction(config, originUrl);
+      if (res.url) {
+        window.location.href = res.url;
       } else {
-        throw new Error("Stripe did not return a checkout URL.");
+        setFormError(res.error || "Stripe did not return a checkout URL.");
+        setIsPending(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setFormError(error?.message || "Failed to launch Stripe checkout.");
       setIsPending(false);
     }
   };
@@ -143,6 +147,11 @@ export default function NewTripPage() {
             Plan Your Perfect Trip
           </h1>
           <p className="text-muted-foreground">Get a customized, professionally-curated day-by-day travel guide</p>
+          {formError && (
+            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm font-medium">
+              {formError}
+            </div>
+          )}
         </div>
 
         {/* Step Indicator */}

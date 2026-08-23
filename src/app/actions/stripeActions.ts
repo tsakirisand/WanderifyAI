@@ -21,8 +21,12 @@ interface TripConfig {
   userId: string;
 }
 
-export async function createCheckoutSessionAction(config: TripConfig, originUrl: string) {
+export async function createCheckoutSessionAction(config: TripConfig, originUrl: string): Promise<{ url?: string; error?: string }> {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return { error: "STRIPE_SECRET_KEY environment variable is not configured." };
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -54,10 +58,10 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
       },
     });
 
-    return { url: session.url };
+    return { url: session.url || undefined };
   } catch (error: any) {
     console.error("Failed to create Stripe Checkout session:", error);
-    throw new Error(error.message || "Failed to create checkout session");
+    return { error: error.message || "Failed to create Stripe checkout session." };
   }
 }
 
