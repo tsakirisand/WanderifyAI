@@ -18,7 +18,7 @@ async function generateContentWithFallback(
   options?: { tools?: any[]; responseMimeType?: string }
 ) {
   const modelsToTry = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-1.5-flash"];
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const model of modelsToTry) {
     // 1. Try with tools if specified
@@ -27,8 +27,9 @@ async function generateContentWithFallback(
         const config: any = { tools: options.tools };
         if (options?.responseMimeType) config.responseMimeType = options.responseMimeType;
         return await ai.models.generateContent({ model, contents, config });
-      } catch (err: any) {
-        console.warn(`Model ${model} WITH tools failed (${err?.message || err}). Trying WITHOUT tools...`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`Model ${model} WITH tools failed (${msg}). Trying WITHOUT tools...`);
         lastError = err;
       }
     }
@@ -38,12 +39,13 @@ async function generateContentWithFallback(
       const config: any = {};
       if (options?.responseMimeType) config.responseMimeType = options.responseMimeType;
       return await ai.models.generateContent({ model, contents, config });
-    } catch (err: any) {
-      console.warn(`Model ${model} WITHOUT tools failed (${err?.message || err}). Trying next model...`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`Model ${model} WITHOUT tools failed (${msg}). Trying next model...`);
       lastError = err;
     }
   }
-  throw lastError || new Error("Failed to generate content with Gemini AI.");
+  throw (lastError instanceof Error ? lastError : new Error("Failed to generate content with Gemini AI."));
 }
 
 export async function generateItineraryData(

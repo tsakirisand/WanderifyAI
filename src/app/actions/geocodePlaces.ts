@@ -37,19 +37,22 @@ Provide ONLY the raw JSON output. No markdown, no HTML, no explanation, no pream
 
     const modelsToTry = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-1.5-flash"];
     let response: any = null;
-    let lastErr: any = null;
+    let lastErr: unknown = null;
 
     for (const model of modelsToTry) {
       try {
-        response = await ai.models.generateContent({
+        const res = await ai.models.generateContent({
           model,
           contents: prompt,
           config: {
             responseMimeType: "application/json",
           },
         });
-        if (response?.text) break;
-      } catch (err: any) {
+        if (res?.text) {
+          response = res;
+          break;
+        }
+      } catch (err: unknown) {
         lastErr = err;
       }
     }
