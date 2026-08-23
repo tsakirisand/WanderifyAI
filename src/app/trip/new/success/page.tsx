@@ -33,10 +33,6 @@ function StripeSuccessContent() {
     return () => clearInterval(interval);
   }, [error]);
 
-  useEffect(() => {
-    if (!sessionId || triggerRef.current) return;
-    triggerRef.current = true;
-
   const verifyAndGenerate = async () => {
     try {
       const result = await verifyPaymentAndGenerateTripAction(sessionId!);
