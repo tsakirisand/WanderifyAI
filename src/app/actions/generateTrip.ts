@@ -182,6 +182,10 @@ export async function generateTripAction(formData: FormData, userId: string) {
     console.error("Geocoding failed during generation:", error);
   }
 
+  if (!adminDb) {
+    throw new Error("Firebase Admin SDK is not initialized. Please configure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in Vercel.");
+  }
+
   const newTripRef = adminDb.collection("trips").doc();
   await newTripRef.set({
     userId,
