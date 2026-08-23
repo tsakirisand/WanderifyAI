@@ -93,7 +93,7 @@ export async function sendTripEmailAction(
     pdfBuffer = Buffer.from(pdfArrayBuffer);
   } catch (pdfErr) {
     console.error("Failed to generate PDF on server side:", pdfErr);
-    throw pdfErr;
+    return; // Skip email delivery gracefully — don't crash the trip generation
   }
 
   // Configure Nodemailer SMTP transporter
