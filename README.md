@@ -6,15 +6,16 @@
 
 ## 🌟 Key Features
 
-### 🧠 1. AI-Powered Travel Engine
-- Uses the **Google Gemini API** to generate detailed, customized travel itineraries.
+### 🧠 1. AI-Powered Travel Engine (Anthropic Claude API)
+- Powered by **Anthropic Claude API** (`@anthropic-ai/sdk`) to generate detailed, customized travel itineraries.
 - Suggests structured daily activities divided into Morning, Afternoon, and Evening slots.
+- Performs automated geocoding of planned sights and landmarks into precise GPS coordinates for interactive map rendering.
 - Includes local travel tips, dining recommendations, and curated "Hidden Gems" for each destination.
 
 ### 💳 2. Secure Stripe Integration (Stripe Hosted Checkout)
 - Charged at a flat rate ($1.99 USD) per itinerary generation/download using **Stripe Hosted Checkout**.
 - Safely stores all trip parameters inside Stripe session metadata.
-- Employs **Transaction Idempotency** (using the Stripe Session ID as the Firestore document ID) to guarantee exactly one trip is created per purchase, preventing duplicates between Webhooks and Success redirects.
+- Employs **Transaction Idempotency & Atomic Locking** (using the Stripe Session ID as the Firestore document ID) to guarantee exactly one trip is created per purchase, preventing duplicates between Webhooks and Success redirects.
 
 ### 🌤️ 3. Live Weather Forecasts (WeatherAPI.com)
 - Securely fetches live weather conditions through Next.js Server Actions to protect API keys.
@@ -46,11 +47,11 @@
 
 - **Framework:** Next.js (App Router, Server Actions)
 - **Styling & Animations:** Tailwind CSS v4, Framer Motion
-- **Database:** Firebase Firestore (Admin SDK)
+- **Database:** Firebase Firestore (Admin SDK & Client Auth)
 - **Authentication:** Firebase Client Authentication (including email verification and Google Provider login)
 - **Payments:** Stripe SDK / Stripe Hosted Checkout
 - **APIs:** 
-  - Google Gen AI SDK (`gemini-2.5-flash`)
+  - Anthropic Claude API (`@anthropic-ai/sdk`)
   - WeatherAPI.com
   - Leaflet.js
 
@@ -61,13 +62,13 @@
 Create a `.env` file in the root directory and add the following keys:
 
 ```env
-# Firebase Configuration
+# Firebase Configuration (Admin SDK)
 FIREBASE_PROJECT_ID="your-project-id"
 FIREBASE_CLIENT_EMAIL="your-firebase-client-email"
 FIREBASE_PRIVATE_KEY="your-firebase-private-key"
 
-# Google Gemini API Key
-GEMINI_API_KEY="your-gemini-key"
+# Anthropic Claude API Key
+ANTHROPIC_API_KEY="sk-ant-api..."
 
 # WeatherAPI.com API Key
 WEATHER_API_KEY="your-weatherapi-key"
