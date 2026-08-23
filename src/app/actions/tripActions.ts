@@ -1,21 +1,22 @@
 "use server";
 
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 
 export async function getUserTrips(userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const q = query(collection(db, "trips"), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
+  const snapshot = await adminDb
+    .collection("trips")
+    .where("userId", "==", userId)
+    .get();
 
-  const trips = snapshot.docs.map((doc: any) => ({
+  const trips = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
     id: doc.id,
-    ...doc.data()
+    ...doc.data(),
   }));
 
-  // Sort by createdAt descending in JS to avoid needing a composite index
+  // Sort by createdAt descending
   trips.sort((a: any, b: any) => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
@@ -26,10 +27,9 @@ export async function getUserTrips(userId: string) {
 export async function getTripById(id: string, userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const tripDocRef = doc(db, "trips", id);
-  const tripDoc = await getDoc(tripDocRef);
-  
-  if (!tripDoc.exists()) return null;
+  const tripDoc = await adminDb.collection("trips").doc(id).get();
+
+  if (!tripDoc.exists) return null;
   const data = tripDoc.data();
   if (data?.userId !== userId) return null;
 
@@ -39,10 +39,10 @@ export async function getTripById(id: string, userId: string) {
 export async function deleteTrip(id: string, userId: string) {
   if (!userId) throw new Error("Unauthorized");
 
-  const tripDocRef = doc(db, "trips", id);
-  const tripDoc = await getDoc(tripDocRef);
-  if (tripDoc.exists() && tripDoc.data()?.userId === userId) {
-    await deleteDoc(tripDocRef);
+  const tripDocRef = adminDb.collection("trips").doc(id);
+  const tripDoc = await tripDocRef.get();
+  if (tripDoc.exists && tripDoc.data()?.userId === userId) {
+    await tripDocRef.delete();
   }
 
   revalidatePath("/dashboard");

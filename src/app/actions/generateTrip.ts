@@ -1,7 +1,6 @@
 "use server";
 
-import { db } from "@/lib/firebase";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 
 export async function generateItineraryData(
@@ -149,8 +148,9 @@ export async function generateTripAction(formData: FormData, userId: string) {
     console.error("Geocoding failed during generation:", error);
   }
 
-  const newTripRef = doc(collection(db, "trips"));
-  await setDoc(newTripRef, {
+  // Use Admin SDK — bypasses Firestore security rules in server actions
+  const newTripRef = adminDb.collection("trips").doc();
+  await newTripRef.set({
     userId,
     destination,
     days,
