@@ -5,9 +5,15 @@ import { adminDb } from "@/lib/firebase-admin";
 import { generateItineraryData } from "@/app/actions/generateTrip";
 import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
+function getStripeClient() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is missing in Vercel environment variables. Please configure STRIPE_SECRET_KEY in Vercel settings.");
+  }
+  return new Stripe(key, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 interface TripConfig {
   destination: string;
@@ -23,9 +29,7 @@ interface TripConfig {
 
 export async function createCheckoutSessionAction(config: TripConfig, originUrl: string): Promise<{ url?: string; error?: string }> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return { error: "STRIPE_SECRET_KEY environment variable is not configured." };
-    }
+    const stripe = getStripeClient();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -67,6 +71,7 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
 
 export async function verifyPaymentAndGenerateTripAction(sessionId: string): Promise<{ success: boolean; tripId?: string; error?: string }> {
   try {
+    const stripe = getStripeClient();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {

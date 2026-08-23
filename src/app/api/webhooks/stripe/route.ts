@@ -4,9 +4,15 @@ import { adminDb } from "@/lib/firebase-admin";
 import { generateItineraryData } from "@/app/actions/generateTrip";
 import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
+function getStripeClient() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is missing in Vercel environment variables.");
+  }
+  return new Stripe(key, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -14,6 +20,7 @@ export async function POST(req: Request) {
   
   let event: Stripe.Event;
   try {
+    const stripe = getStripeClient();
     event = stripe.webhooks.constructEvent(
       body, 
       signature, 
