@@ -40,10 +40,13 @@ function StripeSuccessContent() {
     const verifyAndGenerate = async () => {
       try {
         const result = await verifyPaymentAndGenerateTripAction(sessionId);
-        if (result.tripId) {
+        if (result.error) {
+          // Real error message returned from server (not masked by Next.js)
+          setError(result.error);
+        } else if (result.tripId) {
           router.push(`/trip/${result.tripId}`);
         } else {
-          throw new Error("Did not receive a generated trip ID.");
+          setError("Did not receive a generated trip ID.");
         }
       } catch (err: any) {
         console.error("Verification failed:", err);

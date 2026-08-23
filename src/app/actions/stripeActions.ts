@@ -6,10 +6,6 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { generateItineraryData } from "@/app/actions/generateTrip";
 import { sendTripEmailAction } from "@/app/actions/sendTripEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
-
 interface TripConfig {
   destination: string;
   days: string;
@@ -23,6 +19,10 @@ interface TripConfig {
 }
 
 export async function createCheckoutSessionAction(config: TripConfig, originUrl: string) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -50,7 +50,7 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
         travelStyle: config.travelStyle,
         travelers: config.travelers,
         interests: JSON.stringify(config.interests),
-        notes: config.notes.slice(0, 400), // Truncate notes if they are too long for Stripe metadata limits
+        notes: config.notes.slice(0, 400),
         startDate: config.startDate || "",
       },
     });
@@ -62,17 +62,23 @@ export async function createCheckoutSessionAction(config: TripConfig, originUrl:
   }
 }
 
-export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
+export async function verifyPaymentAndGenerateTripAction(
+  sessionId: string
+): Promise<{ tripId?: string; error?: string }> {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
-      throw new Error("Payment was not completed successfully.");
+      return { error: "Payment was not completed successfully." };
     }
 
     const meta = session.metadata;
     if (!meta) {
-      throw new Error("No trip metadata found in the session.");
+      return { error: "No trip metadata found in the session." };
     }
 
     const destination = meta.destination;
@@ -92,10 +98,18 @@ export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
       return { tripId: sessionId };
     }
 
-    // Generate AI itinerary using the extracted helper
-    const aiResult = await generateItineraryData(destination, days, budget, travelStyle, interests, notes, startDate);
+    // Generate AI itinerary
+    const aiResult = await generateItineraryData(
+      destination,
+      days,
+      budget,
+      travelStyle,
+      interests,
+      notes,
+      startDate
+    );
 
-    // Save to Firestore using sessionId as document ID to guarantee uniqueness
+    // Save to Firestore using sessionId as document ID
     await setDoc(tripDocRef, {
       userId,
       destination,
@@ -117,7 +131,8 @@ export async function verifyPaymentAndGenerateTripAction(sessionId: string) {
 
     return { tripId: sessionId };
   } catch (error: any) {
-    console.error("Failed to verify payment and generate trip:", error);
-    throw new Error(error.message || "Failed to generate your trip itinerary.");
+    console.error("TRIP GENERATION ERROR:", error);
+    // Return the real error — don't throw so Next.js production masking doesn't hide it
+    return { error: error.message || "Unknown error during trip generation" };
   }
 }
