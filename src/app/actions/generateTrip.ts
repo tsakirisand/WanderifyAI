@@ -47,7 +47,7 @@ Provide a detailed day-by-day plan, hotel recommendations, food recommendations,
   });
 
   const researchResponse = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.6-flash",
     contents: researchPrompt,
     config: {
       tools: [{ googleSearch: {} }],
@@ -89,7 +89,7 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
 }`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.6-flash",
     contents: formatPrompt,
     config: {
       responseMimeType: "application/json",

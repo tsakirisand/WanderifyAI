@@ -32,7 +32,7 @@ Your response must be a valid JSON object matching this schema:
 Provide ONLY the raw JSON output. No markdown, no HTML, no explanation, no preamble, and no postscript.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
