@@ -1,7 +1,7 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
-import { GoogleGenAI } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 
 export async function generateItineraryData(
   destination: string,
@@ -30,39 +30,23 @@ Please customize the activities, recommendations, and tips based on this weather
     }
   }
 
-  const researchPrompt = `You are a senior travel agent. Research and plan a highly detailed, personalized travel itinerary for a ${days}-day trip to ${destination}.
-  
-Budget: ${budget}
-Travel Style: ${travelStyle}
-Interests: ${interests.join(", ")}
-Additional Notes: ${notes}
+  const prompt = `You are an expert travel planner. Create a highly detailed, personalized travel itinerary for a ${days}-day trip to ${destination}.
+
+Trip Details:
+- Destination: ${destination}
+- Duration: ${days} days
+- Budget Level: ${budget}
+- Travel Style: ${travelStyle}
+- Traveler Interests: ${interests.join(", ")}
+${notes ? `- Special Requests / Notes: ${notes}` : ""}
 ${weatherContext ? `\n${weatherContext}\n` : ""}
 
-Use Google Search grounding to find real, currently operating and highly rated local attractions, hotels, restaurants, and flight routes. Do not invent or hallucinate names. All names, ratings, and descriptions must be based on real-world data.
+Guidelines:
+1. Provide real, operating, highly rated local attractions, hotels, restaurants, and flight routes for ${destination}.
+2. Keep descriptions concise (under 25 words per description).
+3. Output MUST be ONLY valid, raw JSON matching the exact schema below. Do NOT wrap in markdown formatting, do NOT include \`\`\`json codeblocks, preambles, or explanations.
 
-Provide a detailed day-by-day plan, hotel recommendations, food recommendations, and flight suggestions.`;
-
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-  });
-
-  const researchResponse = await ai.models.generateContent({
-    model: "gemini-3.6-flash",
-    contents: researchPrompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
-  });
-
-  const researchResult = researchResponse.text || '';
-
-  const formatPrompt = `You are a data formatting assistant. Your job is to convert the following travel research notes into a structured JSON itinerary according to the schema.
-  
-Research Notes:
-${researchResult}
-
-Keep all descriptions concise (under 25 words per description) to ensure it fits in the response size limits.
-Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`json), without any preamble, and without any postscript. Provide ONLY the JSON object. Use exactly this schema:
+JSON Schema:
 {
   "destination": "${destination}",
   "days": [
@@ -88,16 +72,29 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
   "summary": "A 2-3 sentence engaging summary of the trip"
 }`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.6-flash",
-    contents: formatPrompt,
-    config: {
-      responseMimeType: "application/json",
-    },
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+  if (!apiKey) {
+    throw new Error("Anthropic API key is not configured. Please set ANTHROPIC_API_KEY.");
+  }
+
+  const anthropic = new Anthropic({
+    apiKey,
   });
 
-  const responseContent = response.text || '';
-  
+  const response = await anthropic.messages.create({
+    model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((block) => block.type === "text");
+  const responseContent = textBlock ? textBlock.text : "";
+
   let cleanContent = responseContent.trim();
   if (cleanContent.startsWith("```json")) {
     cleanContent = cleanContent.slice(7);
@@ -112,7 +109,7 @@ Your output MUST be exactly valid JSON, without any markdown formatting (\`\`\`j
   try {
     return JSON.parse(cleanContent);
   } catch (error) {
-    console.error("Failed to parse AI response as JSON", responseContent);
+    console.error("Failed to parse Claude response as JSON:", responseContent);
     throw new Error("Failed to generate itinerary. Please try again.");
   }
 }

@@ -1,12 +1,18 @@
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 
 export async function geocodePlacesAction(destination: string, places: string[]): Promise<Record<string, { lat: number; lon: number }>> {
   if (!places || places.length === 0) return {};
 
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+  if (!apiKey) {
+    console.warn("Anthropic API key is missing. Skipping geocoding.");
+    return {};
+  }
+
+  const anthropic = new Anthropic({
+    apiKey,
   });
 
   try {
@@ -22,7 +28,7 @@ Guidelines:
 Places to geocode:
 ${places.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
-Your response must be a valid JSON object matching this schema:
+Your response must be ONLY a valid JSON object matching this schema:
 {
   "places": [
     { "name": "Place Name", "lat": 36.4633, "lon": 25.3742 }
@@ -31,15 +37,20 @@ Your response must be a valid JSON object matching this schema:
 
 Provide ONLY the raw JSON output. No markdown, no HTML, no explanation, no preamble, and no postscript.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
+    const response = await anthropic.messages.create({
+      model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
+      max_tokens: 2048,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
-    const text = response.text || "{}";
+    const textBlock = response.content.find((block) => block.type === "text");
+    const text = textBlock ? textBlock.text : "{}";
+
     let clean = text.trim();
     if (clean.startsWith("```json")) {
       clean = clean.slice(7);
