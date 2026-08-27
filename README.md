@@ -4,6 +4,11 @@
 
 ---
 
+## 🌐 Live Demo & Deployment
+🔗 **Public Application URL:** [https://wanderify.vercel.app](https://wanderify.vercel.app)
+
+---
+
 ## 🌟 Key Features
 
 ### 🧠 1. AI-Powered Travel Engine (Anthropic Claude API)
